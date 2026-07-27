@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# NovaHost camouflage on port 80 only (443 untouched)
-# Usage:
-#   curl -fsSL <URL>/install.sh | sudo bash
+# NovaHost camouflage فقط روی پورت 80 (443 دست نخورده)
+# استفاده:
+#   curl -fsSL https://raw.githubusercontent.com/khodehamed/novahost-camouflage/main/install.sh | sudo bash
 #   یا: sudo bash install.sh
 
 WEB_ROOT="${WEB_ROOT:-/var/www/html}"
@@ -11,7 +11,7 @@ NGINX_AVAIL="${NGINX_AVAIL:-/etc/nginx/sites-available/camouflage-80}"
 NGINX_ENABLED="${NGINX_ENABLED:-/etc/nginx/sites-enabled/camouflage-80}"
 
 if [[ "$(id -u)" -ne 0 ]]; then
-  echo "Run as root: sudo bash $0"
+  echo "با دسترسی root اجرا کنید: sudo bash $0"
   exit 1
 fi
 
@@ -24,24 +24,24 @@ elif command -v dnf >/dev/null 2>&1; then
 elif command -v yum >/dev/null 2>&1; then
   yum install -y nginx
 else
-  echo "No supported package manager (apt/dnf/yum)."
+  echo "مدیر بسته پشتیبانی‌شده پیدا نشد (apt/dnf/yum)."
   exit 1
 fi
 
 mkdir -p "$WEB_ROOT"
 
-# Embedded camouflage page
+# صفحه camouflage فارسی (RTL)
 cat > "$WEB_ROOT/index.html" <<'HTML'
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="NovaHost — reliable cloud hosting, VPS, and managed infrastructure for growing businesses." />
-  <title>NovaHost — Cloud Infrastructure</title>
+  <meta name="description" content="نواهاست — هاستینگ ابری، سرور مجازی و زیرساخت مدیریت‌شده برای کسب‌وکارهای در حال رشد." />
+  <title>NovaHost — زیرساخت ابری</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
     :root {
       --bg: #0f1c17;
@@ -55,20 +55,20 @@ cat > "$WEB_ROOT/index.html" <<'HTML'
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       min-height: 100vh;
-      font-family: "DM Sans", sans-serif;
+      font-family: "Vazirmatn", Tahoma, sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(900px 500px at 10% -10%, rgba(61, 186, 124, 0.22), transparent 55%),
-        radial-gradient(700px 400px at 90% 0%, rgba(201, 240, 122, 0.12), transparent 50%),
+        radial-gradient(900px 500px at 90% -10%, rgba(61, 186, 124, 0.22), transparent 55%),
+        radial-gradient(700px 400px at 10% 0%, rgba(201, 240, 122, 0.12), transparent 50%),
         linear-gradient(165deg, var(--bg), var(--bg2) 55%, #0c1612);
-      line-height: 1.55;
+      line-height: 1.75;
     }
     .wrap { width: min(1080px, calc(100% - 2.5rem)); margin: 0 auto; }
     header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 1.4rem 0 1rem; border-bottom: 1px solid var(--line);
     }
-    .logo { font-family: "Fraunces", serif; font-size: 1.35rem; letter-spacing: -0.02em; }
+    .logo { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
     .logo span { color: var(--accent); }
     nav { display: flex; gap: 1.25rem; color: var(--muted); font-size: 0.95rem; }
     nav a { color: inherit; text-decoration: none; }
@@ -76,13 +76,13 @@ cat > "$WEB_ROOT/index.html" <<'HTML'
     .hero { padding: 4.5rem 0 3.5rem; max-width: 720px; }
     .eyebrow {
       display: inline-block; margin-bottom: 1rem; color: var(--accent2);
-      font-size: 0.85rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
+      font-size: 0.85rem; font-weight: 500;
     }
     h1 {
-      font-family: "Fraunces", serif; font-size: clamp(2.2rem, 5vw, 3.4rem);
-      line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 1rem;
+      font-size: clamp(1.9rem, 4.5vw, 2.8rem); line-height: 1.35;
+      font-weight: 700; margin-bottom: 1rem;
     }
-    .lead { color: var(--muted); font-size: 1.08rem; max-width: 54ch; margin-bottom: 1.8rem; }
+    .lead { color: var(--muted); font-size: 1.05rem; max-width: 54ch; margin-bottom: 1.8rem; }
     .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
     .btn {
       appearance: none; border: 0; border-radius: 10px; padding: 0.85rem 1.2rem;
@@ -115,41 +115,41 @@ cat > "$WEB_ROOT/index.html" <<'HTML'
     <header>
       <div class="logo">Nova<span>Host</span></div>
       <nav>
-        <a href="#products">Products</a>
-        <a href="#network">Network</a>
-        <a href="#support">Support</a>
+        <a href="#products">محصولات</a>
+        <a href="#network">شبکه</a>
+        <a href="#support">پشتیبانی</a>
       </nav>
     </header>
     <main>
       <section class="hero">
-        <p class="eyebrow">Managed Cloud Platform</p>
-        <h1>Infrastructure that stays online when traffic peaks.</h1>
+        <p class="eyebrow">پلتفرم ابری مدیریت‌شده</p>
+        <h1>زیرساختی که در اوج ترافیک هم پایدار می‌ماند.</h1>
         <p class="lead">
-          NovaHost provides VPS, object storage, and edge networking for teams that need
-          predictable performance and simple operations.
+          نواهاست سرور مجازی، فضای ذخیره‌سازی و شبکه لبه را برای تیم‌هایی فراهم می‌کند
+          که به عملکرد پایدار و مدیریت ساده نیاز دارند.
         </p>
         <div class="actions">
-          <a class="btn btn-primary" href="#products">View plans</a>
-          <a class="btn btn-ghost" href="#support">Contact sales</a>
+          <a class="btn btn-primary" href="#products">مشاهده پلن‌ها</a>
+          <a class="btn btn-ghost" href="#support">تماس با فروش</a>
         </div>
       </section>
       <section class="grid" id="products">
         <article class="card">
-          <h3>Cloud VPS</h3>
-          <p>SSD-backed instances with hourly billing, snapshots, and private networking.</p>
+          <h3>سرور ابری</h3>
+          <p>نمونه‌های مبتنی بر SSD با صورتحساب ساعتی، اسنپ‌شات و شبکه خصوصی.</p>
         </article>
         <article class="card" id="network">
-          <h3>Anycast DNS</h3>
-          <p>Global DNS with health checks and automatic failover for critical endpoints.</p>
+          <h3>DNS سراسری</h3>
+          <p>دی‌ان‌اس جهانی با بررسی سلامت و تغییر مسیر خودکار برای سرویس‌های حیاتی.</p>
         </article>
         <article class="card" id="support">
-          <h3>24/7 Support</h3>
-          <p>Human support for deploy issues, migrations, and network troubleshooting.</p>
+          <h3>پشتیبانی ۲۴/۷</h3>
+          <p>پشتیبانی انسانی برای استقرار، مهاجرت و عیب‌یابی شبکه.</p>
         </article>
       </section>
     </main>
     <footer>
-      <span>© 2026 NovaHost Systems Ltd.</span>
+      <span>© ۱۴۰۵ NovaHost Systems Ltd.</span>
       <span>status.novahost.example · docs.novahost.example</span>
     </footer>
   </div>
@@ -157,7 +157,6 @@ cat > "$WEB_ROOT/index.html" <<'HTML'
 </html>
 HTML
 
-# Nginx site: port 80 only
 mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled /var/log/nginx
 
 cat > "$NGINX_AVAIL" <<'NGINX'
@@ -185,7 +184,6 @@ NGINX
 ln -sfn "$NGINX_AVAIL" "$NGINX_ENABLED"
 rm -f /etc/nginx/sites-enabled/default
 
-# RHEL-style: ensure sites-enabled is included
 if [[ -f /etc/nginx/nginx.conf ]] && ! grep -q 'sites-enabled' /etc/nginx/nginx.conf; then
   if grep -q 'conf.d/\*.conf' /etc/nginx/nginx.conf; then
     cp -f "$NGINX_AVAIL" /etc/nginx/conf.d/camouflage-80.conf
@@ -196,12 +194,10 @@ nginx -t
 systemctl enable nginx
 systemctl restart nginx
 
-# Free tip: stop anything else binding :80 if needed was already handled by default_server
-
 IP="$(curl -4 -fsS --max-time 5 ifconfig.me 2>/dev/null || curl -4 -fsS --max-time 5 api.ipify.org 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo 'SERVER-IP')"
 
 echo
-echo "OK — camouflage site on port 80"
-echo "URL:  http://${IP}/"
-echo "443 left untouched for your tunnel."
-echo "Test: curl -I http://127.0.0.1/"
+echo "تمام — سایت camouflage روی پورت 80"
+echo "آدرس:  http://${IP}/"
+echo "پورت 443 برای تانل دست نخورده ماند."
+echo "تست: curl -I http://127.0.0.1/"

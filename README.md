@@ -1,7 +1,7 @@
-# NovaHost Camouflage (Port 80)
+# NovaHost Camouflage (پورت ۸۰)
 
-یک صفحه وب ساده + نصب Nginx فقط روی **پورت 80**.  
-پورت **443 دست نخورده می‌ماند** (برای تانل / REALITY).
+یک صفحه وب فارسی (RTL) + نصب Nginx فقط روی **پورت ۸۰**.  
+پورت **۴۴۳ دست نخورده می‌ماند** (برای تانل / REALITY).
 
 ## نصب یک‌خطی
 
@@ -22,15 +22,15 @@ curl -I http://SERVER-IP/
 curl http://SERVER-IP/ | head
 ```
 
-باید `HTTP/1.1 200` و صفحه **NovaHost** بیاید.
+باید `HTTP/1.1 200` و صفحه **NovaHost** (فارسی) بیاید.
 
 ## فایل‌ها
 
 | فایل | توضیح |
 |------|--------|
-| `install.sh` | نصب Nginx + صفحه روی پورت 80 |
-| `index.html` | صفحه camouflage |
-| `nginx-80.conf` | نمونه کانفیگ Nginx (پورت 80) |
+| `install.sh` | نصب Nginx + صفحه روی پورت ۸۰ |
+| `index.html` | صفحه camouflage فارسی |
+| `nginx-80.conf` | نمونه کانفیگ Nginx (پورت ۸۰) |
 
 ## پیش‌نمایش لوکال
 
