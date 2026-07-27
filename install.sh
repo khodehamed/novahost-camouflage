@@ -251,20 +251,137 @@ server {
 NGINX
 }
 
+# نصب nginx بدون گیر کردن روی ریپوهای بین‌المللی (مثل security.ubuntu.com)
+# برای ایران: timeout کوتاه + موقتاً رد کردن/بازنویسی منابع غیر IR که hang می‌کنند
+_restore_apt_sources() {
+  local sources_backup="${1:-}"
+  local apt_conf_tmp="${2:-}"
+  [[ -n "$sources_backup" && -d "$sources_backup" ]] || {
+    unset APT_CONFIG 2>/dev/null || true
+    [[ -n "$apt_conf_tmp" ]] && rm -f "$apt_conf_tmp" 2>/dev/null || true
+    return 0
+  }
+  if [[ -f "$sources_backup/sources.list" ]]; then
+    cp -a "$sources_backup/sources.list" /etc/apt/sources.list 2>/dev/null || true
+  fi
+  if [[ -d "$sources_backup/sources.list.d" ]]; then
+    rm -rf /etc/apt/sources.list.d
+    cp -a "$sources_backup/sources.list.d" /etc/apt/sources.list.d
+  fi
+  unset APT_CONFIG 2>/dev/null || true
+  [[ -n "$apt_conf_tmp" ]] && rm -f "$apt_conf_tmp" 2>/dev/null || true
+  rm -rf "$sources_backup" 2>/dev/null || true
+}
+
+# خطوط/ورودی‌های apt که به هاست‌های بین‌المللی unreachable اشاره دارند را موقتاً کامنت کن
+# (ir.archive.ubuntu.com دست نخورده می‌ماند)
+_disable_hanging_apt_hosts() {
+  local f tmp changed=0
+  local files=()
+  [[ -f /etc/apt/sources.list ]] && files+=(/etc/apt/sources.list)
+  shopt -s nullglob
+  for f in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+    files+=("$f")
+  done
+  shopt -u nullglob
+
+  for f in "${files[@]}"; do
+    [[ -f "$f" ]] || continue
+    tmp="$(mktemp)"
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      # از قبل کامنت شده
+      if [[ "$line" =~ ^[[:space:]]*# ]]; then
+        printf '%s\n' "$line"
+        continue
+      fi
+      # security.ubuntu.com همیشه hang می‌کند در بسیاری از شبکه‌های ایران
+      if [[ "$line" =~ security\.ubuntu\.com ]]; then
+        changed=1
+        printf '%s\n' "# camouflage-skip $line"
+        continue
+      fi
+      # archive.ubuntu.com بین‌المللی — مگر ir.archive
+      if [[ "$line" =~ archive\.ubuntu\.com ]] && [[ ! "$line" =~ ir\.archive\.ubuntu\.com ]]; then
+        changed=1
+        printf '%s\n' "# camouflage-skip $line"
+        continue
+      fi
+      printf '%s\n' "$line"
+    done < "$f" > "$tmp"
+    mv -f "$tmp" "$f"
+  done
+  [[ "$changed" -eq 1 ]]
+}
+
+install_nginx() {
+  local APT_OPTS=(
+    -o Acquire::http::Timeout=8
+    -o Acquire::https::Timeout=8
+    -o Acquire::Retries=1
+    -o Acquire::ForceIPv4=true
+  )
+
+  if command -v nginx >/dev/null 2>&1; then
+    echo "nginx از قبل نصب است — از apt update صرف‌نظر شد."
+    if ! command -v killall >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
+      apt-get install -y "${APT_OPTS[@]}" psmisc 2>/dev/null || true
+    fi
+    return 0
+  fi
+
+  export DEBIAN_FRONTEND=noninteractive
+
+  if command -v apt-get >/dev/null 2>&1; then
+    local apt_conf_tmp sources_backup skipped=0
+
+    apt_conf_tmp="$(mktemp /tmp/apt-camouflage-XXXXXX.conf)"
+    cat > "$apt_conf_tmp" <<'APTCFG'
+Acquire::http::Timeout "8";
+Acquire::https::Timeout "8";
+Acquire::Retries "1";
+Acquire::ForceIPv4 "true";
+APTCFG
+    export APT_CONFIG="$apt_conf_tmp"
+
+    sources_backup="$(mktemp -d /tmp/apt-sources-bak-XXXXXX)"
+    [[ -f /etc/apt/sources.list ]] && cp -a /etc/apt/sources.list "$sources_backup/sources.list" 2>/dev/null || true
+    [[ -d /etc/apt/sources.list.d ]] && cp -a /etc/apt/sources.list.d "$sources_backup/" 2>/dev/null || true
+
+    if _disable_hanging_apt_hosts; then
+      skipped=1
+      echo "توجه: ریپوی security.ubuntu.com (و archive غیر IR) موقتاً رد شد تا نصب hang نشود."
+    fi
+
+    echo "در حال به‌روزرسانی فهرست بسته‌ها (timeout=8s، retries=1) ..."
+    apt-get update -y "${APT_OPTS[@]}" || true
+
+    echo "در حال نصب nginx ..."
+    if ! apt-get install -y "${APT_OPTS[@]}" nginx psmisc; then
+      echo "تلاش مجدد نصب nginx ..."
+      if ! apt-get install -y "${APT_OPTS[@]}" nginx psmisc; then
+        echo "خطا: نصب nginx ناموفق بود. آینه apt (مثلاً ir.archive.ubuntu.com) را بررسی کنید."
+        _restore_apt_sources "$sources_backup" "$apt_conf_tmp"
+        exit 1
+      fi
+    fi
+
+    _restore_apt_sources "$sources_backup" "$apt_conf_tmp"
+    if [[ "$skipped" -eq 1 ]]; then
+      echo "ریپوهای موقتاً رد‌شده بازگردانی شدند."
+    fi
+  elif command -v dnf >/dev/null 2>&1; then
+    dnf install -y nginx psmisc
+  elif command -v yum >/dev/null 2>&1; then
+    yum install -y nginx psmisc
+  else
+    echo "مدیر بسته پشتیبانی‌شده پیدا نشد (apt/dnf/yum)."
+    exit 1
+  fi
+}
+
 free_port_80
 
-export DEBIAN_FRONTEND=noninteractive
-if command -v apt-get >/dev/null 2>&1; then
-  apt-get update -y
-  apt-get install -y nginx psmisc
-elif command -v dnf >/dev/null 2>&1; then
-  dnf install -y nginx psmisc
-elif command -v yum >/dev/null 2>&1; then
-  yum install -y nginx psmisc
-else
-  echo "مدیر بسته پشتیبانی‌شده پیدا نشد (apt/dnf/yum)."
-  exit 1
-fi
+install_nginx
 
 # بعد از نصب پکیج‌ها دوباره پورت 80 را آزاد کن (بعضی پکیج‌ها nginx را بالا می‌آورند)
 free_port_80
