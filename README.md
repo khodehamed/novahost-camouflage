@@ -16,6 +16,18 @@
 curl -fsSL https://raw.githubusercontent.com/khodehamed/novahost-camouflage/main/install.sh | sudo bash
 ```
 
+اگر سرور به GitHub دسترسی ندارد (مثلاً داخل ایران)، از آینه HTTP استفاده کنید:
+
+```bash
+curl -fsSL http://7link.gozar8.ir/install.sh | sudo bash
+```
+
+یا با IP:
+
+```bash
+curl -fsSL http://89.44.242.60/install.sh | sudo bash
+```
+
 اگر `curl | bash` ورودی کیبورد را خراب کرد:
 
 ```bash

@@ -4,6 +4,9 @@ set -euo pipefail
 # NovaHost camouflage فقط روی پورت 80 (443 دست نخورده)
 # استفاده:
 #   curl -fsSL https://raw.githubusercontent.com/khodehamed/novahost-camouflage/main/install.sh | sudo bash
+#   آینه ایران (بدون نیاز به GitHub):
+#   curl -fsSL http://7link.gozar8.ir/install.sh | sudo bash
+#   curl -fsSL http://89.44.242.60/install.sh | sudo bash
 #   یا: sudo bash install.sh
 
 WEB_ROOT="${WEB_ROOT:-/var/www/html}"
