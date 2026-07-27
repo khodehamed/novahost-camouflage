@@ -251,128 +251,150 @@ server {
 NGINX
 }
 
-# نصب nginx بدون گیر کردن روی ریپوهای بین‌المللی (مثل security.ubuntu.com)
-# برای ایران: timeout کوتاه + موقتاً رد کردن/بازنویسی منابع غیر IR که hang می‌کنند
-_restore_apt_sources() {
-  local sources_backup="${1:-}"
-  local apt_conf_tmp="${2:-}"
-  [[ -n "$sources_backup" && -d "$sources_backup" ]] || {
-    unset APT_CONFIG 2>/dev/null || true
-    [[ -n "$apt_conf_tmp" ]] && rm -f "$apt_conf_tmp" 2>/dev/null || true
-    return 0
-  }
-  if [[ -f "$sources_backup/sources.list" ]]; then
-    cp -a "$sources_backup/sources.list" /etc/apt/sources.list 2>/dev/null || true
+# تشخیص کدنام اوبونتو (focal / jammy / noble / ...)
+_ubuntu_codename() {
+  local codename=""
+  if [[ -r /etc/os-release ]]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    codename="${VERSION_CODENAME:-}"
   fi
-  if [[ -d "$sources_backup/sources.list.d" ]]; then
-    rm -rf /etc/apt/sources.list.d
-    cp -a "$sources_backup/sources.list.d" /etc/apt/sources.list.d
+  if [[ -z "$codename" ]] && command -v lsb_release >/dev/null 2>&1; then
+    codename="$(lsb_release -sc 2>/dev/null || true)"
   fi
-  unset APT_CONFIG 2>/dev/null || true
-  [[ -n "$apt_conf_tmp" ]] && rm -f "$apt_conf_tmp" 2>/dev/null || true
-  rm -rf "$sources_backup" 2>/dev/null || true
+  if [[ -z "$codename" ]]; then
+    case "${VERSION_ID:-}" in
+      24.04*) codename="noble" ;;
+      22.04*) codename="jammy" ;;
+      20.04*) codename="focal" ;;
+    esac
+  fi
+  echo "${codename:-noble}"
 }
 
-# خطوط/ورودی‌های apt که به هاست‌های بین‌المللی unreachable اشاره دارند را موقتاً کامنت کن
-# (ir.archive.ubuntu.com دست نخورده می‌ماند)
-_disable_hanging_apt_hosts() {
-  local f tmp changed=0
-  local files=()
-  [[ -f /etc/apt/sources.list ]] && files+=(/etc/apt/sources.list)
+# آیا ubuntu.sources خراب/ناقص است؟ (خروجی 0 = نیاز به تعمیر)
+# فقط بررسی محلی — بدون apt update که ممکن است روی ریپوی غیر IR hang شود
+_ubuntu_sources_needs_repair() {
+  local src="/etc/apt/sources.list.d/ubuntu.sources"
+  [[ -f "$src" ]] || return 1
+
+  # بعد از sed قبلی: خطوط URIs با camouflage-skip کامنت شده → Malformed (URI)
+  if grep -qiE 'camouflage-skip' "$src" 2>/dev/null; then
+    return 0
+  fi
+  if ! grep -qiE '^[[:space:]]*Types:[[:space:]]*' "$src" 2>/dev/null; then
+    return 0
+  fi
+  # باید حداقل یک URIs فعال با آدرس http(s) داشته باشد
+  if ! grep -qiE '^[[:space:]]*URIs:[[:space:]]*https?://' "$src" 2>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
+# اگر ubuntu.sources به‌خاطر اسکریپت قبلی خراب شده، تعمیر کن (فقط وقتی malformed است)
+# هرگز با sed ساده خطوط داخل .sources را کامنت/بازنویسی نکن
+_repair_malformed_ubuntu_sources() {
+  local src="/etc/apt/sources.list.d/ubuntu.sources"
+  [[ -f "$src" ]] || return 0
+  _ubuntu_sources_needs_repair || return 0
+
+  echo "توجه: /etc/apt/sources.list.d/ubuntu.sources خراب است — در حال تعمیر..."
+
+  # ترجیح: بازگردانی از بکاپ اسکریپت قبلی
+  local bak=""
   shopt -s nullglob
-  for f in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
-    files+=("$f")
+  for bak in \
+    "${src}.bak" "${src}.bak-camouflage" "${src}.bak"* \
+    /tmp/apt-sources-bak-*/sources.list.d/ubuntu.sources
+  do
+    [[ -f "$bak" ]] || continue
+    if grep -qiE '^[[:space:]]*Types:[[:space:]]*' "$bak" \
+      && grep -qiE '^[[:space:]]*URIs:[[:space:]]*https?://' "$bak" \
+      && ! grep -qiE '^[[:space:]]*#[[:space:]]*camouflage-skip' "$bak"; then
+      echo "  بازگردانی از بکاپ: $bak"
+      cp -a "$bak" "$src"
+      shopt -u nullglob
+      return 0
+    fi
   done
   shopt -u nullglob
 
-  for f in "${files[@]}"; do
-    [[ -f "$f" ]] || continue
-    tmp="$(mktemp)"
-    while IFS= read -r line || [[ -n "$line" ]]; do
-      # از قبل کامنت شده
-      if [[ "$line" =~ ^[[:space:]]*# ]]; then
-        printf '%s\n' "$line"
-        continue
-      fi
-      # security.ubuntu.com همیشه hang می‌کند در بسیاری از شبکه‌های ایران
-      if [[ "$line" =~ security\.ubuntu\.com ]]; then
-        changed=1
-        printf '%s\n' "# camouflage-skip $line"
-        continue
-      fi
-      # archive.ubuntu.com بین‌المللی — مگر ir.archive
-      if [[ "$line" =~ archive\.ubuntu\.com ]] && [[ ! "$line" =~ ir\.archive\.ubuntu\.com ]]; then
-        changed=1
-        printf '%s\n' "# camouflage-skip $line"
-        continue
-      fi
-      printf '%s\n' "$line"
-    done < "$f" > "$tmp"
-    mv -f "$tmp" "$f"
-  done
-  [[ "$changed" -eq 1 ]]
+  local codename
+  codename="$(_ubuntu_codename)"
+  # بکاپ از فایل خراب قبل از بازنویسی
+  cp -a "$src" "${src}.broken-$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
+  echo "  بازنویسی ubuntu.sources معتبر (آینه IR، کدنام: $codename) ..."
+  cat > "$src" <<EOF
+Types: deb
+URIs: http://ir.archive.ubuntu.com/ubuntu
+Suites: ${codename} ${codename}-updates ${codename}-backports
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+EOF
 }
 
+# نصب nginx با منبع apt ایزوله (بدون دستکاری دائمی sources سیستم)
+# ریپوهای بین‌المللی hang‌کننده (security.ubuntu.com) اصلاً لمس نمی‌شوند
 install_nginx() {
-  local APT_OPTS=(
-    -o Acquire::http::Timeout=8
-    -o Acquire::https::Timeout=8
-    -o Acquire::Retries=1
-    -o Acquire::ForceIPv4=true
-  )
+  # تعمیر ubuntu.sources خراب‌شده توسط نسخه قبلی (حتی اگر nginx از قبل نصب باشد)
+  if command -v apt-get >/dev/null 2>&1; then
+    _repair_malformed_ubuntu_sources || true
+  fi
 
   if command -v nginx >/dev/null 2>&1; then
-    echo "nginx از قبل نصب است — از apt update صرف‌نظر شد."
-    if ! command -v killall >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
-      apt-get install -y "${APT_OPTS[@]}" psmisc 2>/dev/null || true
-    fi
+    echo "nginx از قبل نصب است — از apt صرف‌نظر شد."
     return 0
   fi
 
   export DEBIAN_FRONTEND=noninteractive
 
   if command -v apt-get >/dev/null 2>&1; then
-    local apt_conf_tmp sources_backup skipped=0
+    local codename TMP_LIST update_rc=0
 
-    apt_conf_tmp="$(mktemp /tmp/apt-camouflage-XXXXXX.conf)"
-    cat > "$apt_conf_tmp" <<'APTCFG'
-Acquire::http::Timeout "8";
-Acquire::https::Timeout "8";
-Acquire::Retries "1";
-Acquire::ForceIPv4 "true";
-APTCFG
-    export APT_CONFIG="$apt_conf_tmp"
+    codename="$(_ubuntu_codename)"
+    TMP_LIST="$(mktemp /tmp/camouflage-apt-XXXXXX.list)"
+    cat > "$TMP_LIST" <<EOF
+deb http://ir.archive.ubuntu.com/ubuntu ${codename} main restricted universe multiverse
+deb http://ir.archive.ubuntu.com/ubuntu ${codename}-updates main restricted universe multiverse
+deb http://ir.archive.ubuntu.com/ubuntu ${codename}-backports main restricted universe multiverse
+EOF
 
-    sources_backup="$(mktemp -d /tmp/apt-sources-bak-XXXXXX)"
-    [[ -f /etc/apt/sources.list ]] && cp -a /etc/apt/sources.list "$sources_backup/sources.list" 2>/dev/null || true
-    [[ -d /etc/apt/sources.list.d ]] && cp -a /etc/apt/sources.list.d "$sources_backup/" 2>/dev/null || true
+    # فقط همین لیست موقت — sourceparts سیستم (از جمله ubuntu.sources) نادیده گرفته می‌شود
+    local -a APT_ISO_OPTS=(
+      -o Acquire::http::Timeout=8
+      -o Acquire::https::Timeout=8
+      -o Acquire::Retries=1
+      -o Acquire::ForceIPv4=true
+      -o "Dir::Etc::sourcelist=$TMP_LIST"
+      -o Dir::Etc::sourceparts=/dev/null
+      -o APT::Get::List-Cleanup=0
+    )
 
-    if _disable_hanging_apt_hosts; then
-      skipped=1
-      echo "توجه: ریپوی security.ubuntu.com (و archive غیر IR) موقتاً رد شد تا نصب hang نشود."
+    echo "در حال به‌روزرسانی فهرست بسته‌ها از آینه IR (${codename}) ..."
+    set +e
+    apt-get "${APT_ISO_OPTS[@]}" update
+    update_rc=$?
+    set -e
+    if [[ "$update_rc" -ne 0 ]]; then
+      echo "هشدار: apt update کامل نشد؛ ادامه نصب nginx..."
     fi
 
-    echo "در حال به‌روزرسانی فهرست بسته‌ها (timeout=8s، retries=1) ..."
-    apt-get update -y "${APT_OPTS[@]}" || true
-
     echo "در حال نصب nginx ..."
-    if ! apt-get install -y "${APT_OPTS[@]}" nginx psmisc; then
+    if ! apt-get "${APT_ISO_OPTS[@]}" install -y nginx; then
       echo "تلاش مجدد نصب nginx ..."
-      if ! apt-get install -y "${APT_OPTS[@]}" nginx psmisc; then
+      if ! apt-get "${APT_ISO_OPTS[@]}" install -y nginx; then
+        rm -f "$TMP_LIST" 2>/dev/null || true
         echo "خطا: نصب nginx ناموفق بود. آینه apt (مثلاً ir.archive.ubuntu.com) را بررسی کنید."
-        _restore_apt_sources "$sources_backup" "$apt_conf_tmp"
         exit 1
       fi
     fi
 
-    _restore_apt_sources "$sources_backup" "$apt_conf_tmp"
-    if [[ "$skipped" -eq 1 ]]; then
-      echo "ریپوهای موقتاً رد‌شده بازگردانی شدند."
-    fi
+    rm -f "$TMP_LIST" 2>/dev/null || true
   elif command -v dnf >/dev/null 2>&1; then
-    dnf install -y nginx psmisc
+    dnf install -y nginx
   elif command -v yum >/dev/null 2>&1; then
-    yum install -y nginx psmisc
+    yum install -y nginx
   else
     echo "مدیر بسته پشتیبانی‌شده پیدا نشد (apt/dnf/yum)."
     exit 1
