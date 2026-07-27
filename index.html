@@ -3,20 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="نواهاست — هاستینگ ابری، سرور مجازی و زیرساخت مدیریت‌شده برای کسب‌وکارهای در حال رشد." />
-  <title>NovaHost — زیرساخت ابری</title>
+  <meta name="description" content="نواهاست — طراحی سایت حرفه‌ای و ساخت ربات تلگرام برای کسب‌وکارها." />
+  <title>NovaHost — طراحی سایت و ربات تلگرام</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0f1c17;
-      --bg2: #163028;
-      --ink: #e8f2ec;
-      --muted: #9bb5a8;
-      --accent: #3dba7c;
-      --accent2: #c9f07a;
-      --line: rgba(232, 242, 236, 0.12);
+      --bg: #101820;
+      --bg2: #1a2a35;
+      --ink: #eef4f7;
+      --muted: #9db0bc;
+      --accent: #2eb8a0;
+      --accent2: #7fd4c3;
+      --line: rgba(238, 244, 247, 0.12);
+      --soft: rgba(255, 255, 255, 0.04);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,9 +27,9 @@
       font-family: "Vazirmatn", Tahoma, sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(900px 500px at 90% -10%, rgba(61, 186, 124, 0.22), transparent 55%),
-        radial-gradient(700px 400px at 10% 0%, rgba(201, 240, 122, 0.12), transparent 50%),
-        linear-gradient(165deg, var(--bg), var(--bg2) 55%, #0c1612);
+        radial-gradient(900px 520px at 85% -15%, rgba(46, 184, 160, 0.22), transparent 55%),
+        radial-gradient(700px 420px at 5% 5%, rgba(127, 212, 195, 0.1), transparent 50%),
+        linear-gradient(165deg, var(--bg), var(--bg2) 55%, #0c141a);
       line-height: 1.75;
     }
 
@@ -69,7 +70,7 @@
 
     .hero {
       padding: 4.5rem 0 3.5rem;
-      max-width: 720px;
+      max-width: 740px;
     }
 
     .eyebrow {
@@ -112,8 +113,8 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent), #2f9a66);
-      color: #042015;
+      background: linear-gradient(135deg, var(--accent), #1f9a86);
+      color: #042018;
     }
 
     .btn-ghost {
@@ -122,18 +123,23 @@
       border: 1px solid var(--line);
     }
 
+    .section-title {
+      font-size: 1.35rem;
+      margin-bottom: 1rem;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 1rem;
-      padding: 0.5rem 0 3.5rem;
+      padding: 0.5rem 0 3rem;
     }
 
     .card {
       border: 1px solid var(--line);
       border-radius: 16px;
       padding: 1.25rem;
-      background: rgba(255, 255, 255, 0.03);
+      background: var(--soft);
     }
 
     .card h3 {
@@ -146,6 +152,34 @@
       font-size: 0.95rem;
     }
 
+    .contact {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 1.6rem 1.4rem;
+      margin-bottom: 3rem;
+      background:
+        linear-gradient(135deg, rgba(46, 184, 160, 0.1), transparent 55%),
+        var(--soft);
+    }
+
+    .contact p {
+      color: var(--muted);
+      margin: 0.6rem 0 1.2rem;
+      max-width: 55ch;
+    }
+
+    .contact .tg {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      color: var(--accent2);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 1.05rem;
+    }
+
+    .contact .tg:hover { color: var(--ink); }
+
     footer {
       border-top: 1px solid var(--line);
       padding: 1.4rem 0 2rem;
@@ -155,6 +189,11 @@
       justify-content: space-between;
       gap: 1rem;
       flex-wrap: wrap;
+    }
+
+    footer a {
+      color: var(--accent2);
+      text-decoration: none;
     }
 
     @media (max-width: 800px) {
@@ -169,45 +208,56 @@
     <header>
       <div class="logo">Nova<span>Host</span></div>
       <nav>
-        <a href="#products">محصولات</a>
-        <a href="#network">شبکه</a>
-        <a href="#support">پشتیبانی</a>
+        <a href="#services">خدمات</a>
+        <a href="#bots">ربات تلگرام</a>
+        <a href="#contact">ارتباط با ما</a>
       </nav>
     </header>
 
     <main>
       <section class="hero">
-        <p class="eyebrow">پلتفرم ابری مدیریت‌شده</p>
-        <h1>زیرساختی که در اوج ترافیک هم پایدار می‌ماند.</h1>
+        <p class="eyebrow">آژانس طراحی وب و اتوماسیون تلگرام</p>
+        <h1>طراحی سایت و ربات تلگرام، دقیق و آماده رشد کسب‌وکار شما.</h1>
         <p class="lead">
-          نواهاست سرور مجازی، فضای ذخیره‌سازی و شبکه لبه را برای تیم‌هایی فراهم می‌کند
-          که به عملکرد پایدار و مدیریت ساده نیاز دارند.
+          نواهاست وب‌سایت‌های سریع و مدرن می‌سازد و ربات‌های تلگرام را برای فروش،
+          پشتیبانی و اتوماسیون فرآیندها پیاده‌سازی می‌کند.
         </p>
         <div class="actions">
-          <a class="btn btn-primary" href="#products">مشاهده پلن‌ها</a>
-          <a class="btn btn-ghost" href="#support">تماس با فروش</a>
+          <a class="btn btn-primary" href="#services">مشاهده خدمات</a>
+          <a class="btn btn-ghost" href="#contact">ارتباط با ما</a>
         </div>
       </section>
 
-      <section class="grid" id="products">
+      <h2 class="section-title" id="services">خدمات ما</h2>
+      <section class="grid">
         <article class="card">
-          <h3>سرور ابری</h3>
-          <p>نمونه‌های مبتنی بر SSD با صورتحساب ساعتی، اسنپ‌شات و شبکه خصوصی.</p>
+          <h3>طراحی سایت</h3>
+          <p>طراحی و پیاده‌سازی سایت شرکتی، فروشگاهی و لندینگ با ظاهر حرفه‌ای و تجربه کاربری روان.</p>
         </article>
-        <article class="card" id="network">
-          <h3>DNS سراسری</h3>
-          <p>دی‌ان‌اس جهانی با بررسی سلامت و تغییر مسیر خودکار برای سرویس‌های حیاتی.</p>
+        <article class="card" id="bots">
+          <h3>ربات تلگرام</h3>
+          <p>ساخت ربات فروش، پشتیبانی، اطلاع‌رسانی و اتصال به درگاه پرداخت یا سیستم داخلی شما.</p>
         </article>
-        <article class="card" id="support">
-          <h3>پشتیبانی ۲۴/۷</h3>
-          <p>پشتیبانی انسانی برای استقرار، مهاجرت و عیب‌یابی شبکه.</p>
+        <article class="card">
+          <h3>پشتیبانی و توسعه</h3>
+          <p>به‌روزرسانی، بهینه‌سازی سرعت، افزودن امکانات جدید و نگهداری مداوم پروژه.</p>
         </article>
+      </section>
+
+      <section class="contact" id="contact">
+        <h2 class="section-title">ارتباط با ما</h2>
+        <p>
+          برای سفارش طراحی سایت، ساخت ربات تلگرام یا مشاوره رایگان، از طریق تلگرام پیام دهید.
+        </p>
+        <a class="tg" href="https://t.me/mytelegramu45" target="_blank" rel="noopener noreferrer">
+          تلگرام: @mytelegramu45
+        </a>
       </section>
     </main>
 
     <footer>
-      <span>© ۱۴۰۵ NovaHost Systems Ltd.</span>
-      <span>status.novahost.example · docs.novahost.example</span>
+      <span>© ۱۴۰۵ نواهاست — طراحی سایت و ربات تلگرام</span>
+      <span><a href="https://t.me/mytelegramu45">@mytelegramu45</a></span>
     </footer>
   </div>
 </body>
